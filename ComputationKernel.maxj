@@ -1,0 +1,50 @@
+package rm120010;
+
+import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEType;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.CounterChain;
+
+public class ComputationKernel extends Kernel {
+    //private static final DFEType type1 = dfeFloat(8, 24);
+
+	final DFEType scalarType = dfeUInt(32);
+
+public ComputationKernel(KernelParameters parameters, int num_rowsx, int num_colsx) {
+		super(parameters);
+
+		// Input
+		DFEVar sum = io.scalarInput("sum", dfeUInt(32));
+		DFEVar num_rows = io.scalarInput("num_rows", dfeUInt(32));
+        DFEVar num_cols = io.scalarInput("num_cols", dfeUInt(32));
+		
+				
+		CounterChain chain1 = control.count.makeCounterChain();
+		DFEVar x1 = chain1.addCounter(num_rows, 1);
+		DFEVar y1 = chain1.addCounter(num_cols, 1);
+		
+		DFEVar input1 = io.input("input1" , scalarType);
+		DFEVar input2 = io.input("input2", scalarType, y1 === 0);
+		DFEVar input3 = io.input("input3", scalarType);
+		
+		
+		DFEVar res1 = input2 * input3;
+		DFEVar res2 = res1 / sum;
+		DFEVar res3 = input1 - res2;
+		DFEVar res4 = res3 * res3;
+		DFEVar res5 = res4 / res1;
+		
+		
+		
+		DFEVar CarriedSum1 = scalarType.newInstance(this);
+		DFEVar sum1 = x1 === 0 ? 0.0 : CarriedSum1;
+		
+		DFEVar NewSum1 = res5 + sum1;
+		
+        CarriedSum1 <== stream.offset(NewSum1, -num_colsx); 
+		
+        io.output("chisq_sum" , NewSum1, scalarType, x1 === (num_rows - 1));
+		
+	}
+}

@@ -1,0 +1,47 @@
+package rm120010;
+
+import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEType;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.CounterChain;
+
+
+public class SumationKernel extends Kernel {
+    //private static final DFEType type1 = dfeFloat(8, 24);
+
+	final DFEType scalarType = dfeInt(32);
+	
+	public SumationKernel(KernelParameters parameters, int num_rows_x, int num_cols_x) {
+		super(parameters);
+
+		DFEVar num_rows = io.scalarInput("num_rows", dfeUInt(32));
+        DFEVar num_cols = io.scalarInput("num_cols", dfeUInt(32));
+		
+		
+		DFEVar input1 = io.input("input1" , scalarType);
+		DFEVar input2 = io.input("input2" , scalarType); 
+		
+		CounterChain chain1 = control.count.makeCounterChain();
+		DFEVar x1 = chain1.addCounter(num_rows, 1);
+		DFEVar y1 = chain1.addCounter(num_cols, 1);
+		CounterChain chain2 = control.count.makeCounterChain();
+		DFEVar y2 = chain2.addCounter(num_cols, 1);
+		DFEVar x2 = chain2.addCounter(num_rows, 1);
+		
+		
+		DFEVar CarriedSum1 = scalarType.newInstance(this);
+		DFEVar CarriedSum2 = scalarType.newInstance(this);
+		DFEVar sum1 = x1 === 0 ? 0.0 : CarriedSum1;
+		DFEVar sum2 = y2 === 0 ? 0.0 : CarriedSum2;
+		
+		DFEVar NewSum1 = input1 + sum1;
+		DFEVar NewSum2 = input2 + sum2;
+        CarriedSum1 <== stream.offset(NewSum1, -num_cols_x); 
+		CarriedSum2 <== stream.offset(NewSum2, -num_rows_x);
+		
+        io.output("col_sum" , NewSum1, scalarType, x1 === (num_rows - 1));
+        io.output("row_sum", NewSum2, scalarType, y2 === (num_cols - 1));
+        	
+	}
+}

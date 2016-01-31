@@ -1,0 +1,74 @@
+/**
+ * Document: MaxCompiler Tutorial (maxcompiler-tutorial)
+ * Chapter: 3      Example: 2      Name: Moving Average
+ * MaxFile name: MovingAverage
+ * Summary:
+ *     Manager for a three point moving average design.
+ *  All IO is between the CPU and the DFE.
+ */
+package simplecounter;
+import rm120010.*;
+
+import com.maxeler.maxcompiler.v2.build.EngineParameters;
+import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.CPUTypes;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.EngineInterface;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.InterfaceParam;
+import com.maxeler.maxcompiler.v2.managers.standard.Manager;
+import com.maxeler.maxcompiler.v2.managers.standard.Manager.IOType;
+
+class SimpleCounterManager {
+	public static void main(String[] args) {
+	    String[] args2 = args.clone();
+	    args2[1] = "maxFileName=DFE2";
+		
+		EngineParameters params = new EngineParameters(args);
+		Manager manager = new Manager(params);
+		Kernel kernel = new SumationKernel(manager.makeKernelParameters("sumation"), 160, 160);
+		manager.setKernel(kernel);
+		manager.setIO(IOType.ALL_CPU);
+		manager.createSLiCinterface(interfaceDefault());
+		manager.build();
+		
+		
+		
+		EngineParameters params2 = new EngineParameters(args2);
+		Manager manager2 = new Manager(params2);
+		Kernel kernel2 = new ComputationKernel(manager2.makeKernelParameters("computation"), 16, 16);
+		manager2.setKernel(kernel2);
+		manager2.setIO(IOType.ALL_CPU);
+		manager2.createSLiCinterface(interfaceDefault2());
+		
+		//manager2.build();
+	}
+
+	static EngineInterface interfaceDefault() {
+		EngineInterface ei = new EngineInterface("sum");
+		InterfaceParam N = ei.addParam("N", CPUTypes.INT32);
+		InterfaceParam M = ei.addParam("M", CPUTypes.INT32);
+		ei.setScalar("sumation", "num_rows", N);
+		ei.setScalar("sumation", "num_cols", M);
+		ei.setTicks("sumation", N*M);
+		ei.setStream("input1", CPUTypes.INT32, N * M * CPUTypes.INT32.sizeInBytes());
+		ei.setStream("input2", CPUTypes.INT32, N * M * CPUTypes.INT32.sizeInBytes());
+		ei.setStream("row_sum", CPUTypes.INT32, N * CPUTypes.INT32.sizeInBytes());
+		ei.setStream("col_sum", CPUTypes.INT32, M * CPUTypes.INT32.sizeInBytes());
+		return ei;
+	}
+	
+	static EngineInterface interfaceDefault2() {
+		EngineInterface ei = new EngineInterface("calc");
+		InterfaceParam SUM = ei.addParam("sumx", CPUTypes.INT32);
+		InterfaceParam N = ei.addParam("N", CPUTypes.INT32);
+		InterfaceParam M = ei.addParam("M", CPUTypes.INT32);
+		ei.setScalar("computation", "sum", SUM);
+		ei.setScalar("computation", "num_rows", N);
+		ei.setScalar("computation", "num_cols", M);
+		ei.setTicks("computation", N*M);
+		ei.setStream("input1", CPUTypes.INT32, N * M * CPUTypes.INT32.sizeInBytes());
+		ei.setStream("input2", CPUTypes.INT32, N * CPUTypes.INT32.sizeInBytes());
+		ei.setStream("input3", CPUTypes.INT32, N * M * CPUTypes.INT32.sizeInBytes());
+        ei.setStream("chisq_sum", CPUTypes.INT32, M * CPUTypes.INT32.sizeInBytes());
+		return ei;
+	}
+}
